@@ -6,9 +6,30 @@
     <link rel="icon" href="https://www.aureos.com/wp-content/uploads/2025/02/AUREOS-FAVicon_512px-x-512px-150x150.png" sizes="32x32">
     <title>ACC Access Requests</title>
     <style>
+        /* Width of the scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        /* Track (background) of the scrollbar */
+        ::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        /* Thumb (scroll handle) styling */
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 6px;
+        }
+
+        /* Thumb hover effect */
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;   
+        }
         /* Basic reset */
         body,
         html {
+            overflow: hidden;
             margin: 0;
             padding: 0;
             height: 100%;
@@ -16,12 +37,22 @@
             background: rgb(255, 255, 255);
             background: linear-gradient(158deg, rgba(255, 255, 255, 1) 0%, rgba(59, 219, 135, 1) 37%, rgba(111, 188, 247, 1) 65%, rgba(4, 113, 190, 1) 100%);
         }
+        /* Filter container styling (fixed at top of left panel) */
+        #filter-container {
+            position: sticky;
+            top: 0;
+            background-color: #f9f9f9;
+            z-index: 100;
+            padding: 10px;
+            padding-bottom: 10px;
 
+        }
         /* Main container as a flex layout */
         #container {
             display: flex;
             height: 95%;
             padding: 30px;
+            gap: 10px;
         }
 
         /* Left panel styling (30% width) */
@@ -32,9 +63,13 @@
             width: 30%;
             border-right: 1px solid #ddd;
             overflow-y: auto;
-            padding: 10px;
+
             background-color: #f9f9f9;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Soft shadow */
+        }
+        #left-panel h2 {
+            padding: 10px;
+            margin: 10px 0;
         }
 
         /* Right panel styling (70% width) */
@@ -67,6 +102,7 @@
         /* Request list styling */
         #requestList {
             padding-left: 10px;
+            margin-top: 0;
         }
         #requestList li {
             list-style: none;
@@ -125,19 +161,31 @@
         .progress-bar.active {
             background-color: #4CAF50;
         }
+        #appInfo {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+        }
     </style>
 </head>
 
 <body>
     <div id="container">
-    <!-- Left Panel: List of Requests, Search Bar, and Project Dropdown -->
+    <!-- Left Panel: List of Requests, Fixed Filter Options -->
     <div id="left-panel">
         <h2>Access Requests</h2>
-        <input type="text" id="searchInput" placeholder="Search requests..." />
-        <select id="projectDropdown">
-          <option value="">All Projects</option>
-          <!-- Project options will be added dynamically -->
-        </select>
+        <div id="filter-container">
+          <input type="text" id="searchInput" placeholder="Search requests..." />
+          <select id="projectDropdown">
+            <option value="">All Projects</option>
+            <!-- Project options will be added dynamically -->
+          </select>
+        </div>
         <ul id="requestList">
           <!-- List items will be injected here -->
         </ul>
@@ -151,7 +199,12 @@
             </div>
         </div>
     </div>
-
+    <div id="appInfo"></div>
+    <a href="https://www.aureos.com/" target="_blank" rel="noopener noreferrer">
+        <img src="https://www.aureos.com/wp-content/themes/keltbray/assets/img/logo/AUREOS_logo_wh.svg" 
+             class="logo logo--white" 
+             alt="Aureos Logo">
+    </a>
     <script>
         // Replace with your actual API endpoint if needed
         const apiEndpoint = 'https://prod-46.uksouth.logic.azure.com:443/workflows/5e934fa6851d4e5a938fd72af6785118/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=jefhHPo2rrrPKH6TXQjOQzPRz0uKGh4btJP_HTayhlo';
