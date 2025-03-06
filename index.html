@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="https://www.aureos.com/wp-content/uploads/2025/02/AUREOS-FAVicon_512px-x-512px-150x150.png" sizes="32x32">
+    <title>ACC Access Requests</title>
+    <style>
+        /* Basic reset */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background: rgb(255, 255, 255);
+            background: linear-gradient(158deg, rgba(255, 255, 255, 1) 0%, rgba(59, 219, 135, 1) 37%, rgba(111, 188, 247, 1) 65%, rgba(4, 113, 190, 1) 100%);
+        }
+
+        /* Main container as a flex layout */
+        #container {
+            display: flex;
+            height: 95%;
+            padding: 30px;
+        }
+
+        /* Left panel styling (30% width) */
+        #left-panel {
+            background: white;
+            border-radius: 15px;
+            /* Rounded edges */
+            width: 30%;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f9f9f9;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Soft shadow */
+        }
+
+        /* Right panel styling (70% width) */
+        #right-panel {
+            width: 70%;
+            padding: 20px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 15px;
+            /* Rounded edges */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Soft shadow */
+        }
+
+        /* Search input styling */
+        #searchInput {
+            width: 90%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        /* Dropdown styling */
+        #projectDropdown {
+            width: 95%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        /* Request list styling */
+        #requestList {
+            padding-left: 10px;
+        }
+        #requestList li {
+            list-style: none;
+            padding: 10px;
+
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        #requestList li:hover {
+            background-color: #f2f2f2;
+        }
+
+        #requestList li.active {
+            background-color: #ddd;
+        }
+
+        /* Progress diagram styles */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .progress-step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progress-step.active {
+            border-color: #4CAF50;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 2px;
+            background-color: #ccc;
+            margin: 0 5px;
+            position: relative;
+            top: -15px;
+            z-index: 0;
+            margin-top: 28px;
+        }
+
+        .progress-bar.active {
+            background-color: #4CAF50;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+    <!-- Left Panel: List of Requests, Search Bar, and Project Dropdown -->
+    <div id="left-panel">
+        <h2>Access Requests</h2>
+        <input type="text" id="searchInput" placeholder="Search requests..." />
+        <select id="projectDropdown">
+          <option value="">All Projects</option>
+          <!-- Project options will be added dynamically -->
+        </select>
+        <ul id="requestList">
+          <!-- List items will be injected here -->
+        </ul>
+      </div>
+
+        <!-- Right Panel: Request Details -->
+        <div id="right-panel">
+            <h2>Request Details</h2>
+            <div id="requestDetails">
+                <p>Select a request from the list to view its details.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Replace with your actual API endpoint if needed
+        const apiEndpoint = 'https://prod-46.uksouth.logic.azure.com:443/workflows/5e934fa6851d4e5a938fd72af6785118/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=jefhHPo2rrrPKH6TXQjOQzPRz0uKGh4btJP_HTayhlo';
+        let accessData
+        // Populate the project dropdown with unique project names from sampleData
+        function populateProjectDropdown() {
+        const projectDropdown = document.getElementById('projectDropdown');
+        const projects = [...new Set(accessData.map(request => request.project))];
+        projects.forEach(project => {
+            const option = document.createElement('option');
+            option.value = project;
+            option.textContent = project;
+            projectDropdown.appendChild(option);
+        });
+        }
+        // Renders a progress diagram showing the current stage of the request
+        function renderProgressDiagram(stage) {
+            const stages = ["Requested","For submitted await project manager approval", "Access approved, awaiting access to be granted", "User added to ACC project"];
+            let diagramHTML = '<div class="progress-container">';
+            stages.forEach((s, index) => {
+                const isActive = (stages.indexOf(stage) >= index);
+                diagramHTML += `<div class="progress-step ${isActive ? 'active' : ''}">${index + 1}</div>`;
+                if (index < stages.length - 1) {
+                    const nextIsActive = (stages.indexOf(stage) > index);
+                    diagramHTML += `<div class="progress-bar ${nextIsActive ? 'active' : ''}"></div>`;
+                }
+            });
+            diagramHTML += '</div>';
+            return diagramHTML;
+        }
+
+        // Renders the details of the selected request in the right panel
+        function renderRequestDetails(request) {
+            const detailsContainer = document.getElementById('requestDetails');
+            detailsContainer.innerHTML = `
+                <p><strong>Name:</strong> ${request.name}</p>
+                <p><strong>Email:</strong> ${request.email}</p>
+                <p><strong>Role:</strong> ${request.role}</p>
+                <p><strong>Status:</strong> ${request.stage}</p>
+                <p><strong>Project:</strong> ${request.project}</p>
+                <p><strong>Assigned Approver:</strong> ${request.assignedApprover}</p>
+                <p><strong>Requested at:</strong> ${request.requestedOn}</p>
+                <h3>Request Stage</h3>
+                ${renderProgressDiagram(request.stage)}
+                <p>1. Request Submitted</p>
+                <p>2. Await approval</p>
+                <p>3. Access approved, awaiting for access to be granted</p>
+                <p>4. User added to ACC project</p>
+            `;
+        }
+
+        // Renders the list of access requests in the left panel
+        function renderRequestList(data) {
+            const requestList = document.getElementById('requestList');
+            requestList.innerHTML = ''; // Clear any existing list items
+            data.sort((a, b) => b.id - a.id);
+            data.forEach(request => {
+                const li = document.createElement('li');
+                li.textContent = `${request.name} (${request.project})`;
+                li.addEventListener('click', function () {
+                    // Remove active class from all list items
+                    document.querySelectorAll('#requestList li').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    li.classList.add('active');
+                    renderRequestDetails(request);
+                });
+                requestList.appendChild(li);
+            });
+        }
+    // Filter function based on search input and project dropdown
+    function filterRequests(searchTerm, selectedProject) {
+      return accessData.filter(request => {
+        const matchesSearch = request.name.toLowerCase().includes(searchTerm) ||
+                              request.project.toLowerCase().includes(searchTerm);
+        const matchesProject = selectedProject === '' || request.project === selectedProject;
+        return matchesSearch && matchesProject;
+      });
+    }
+
+    // Update list when either search input or dropdown changes
+    function updateList() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const selectedProject = document.getElementById('projectDropdown').value;
+      const filteredData = filterRequests(searchTerm, selectedProject);
+      renderRequestList(filteredData);
+    }
+
+    // Attach event listeners to search input and project dropdown
+    document.getElementById('searchInput').addEventListener('input', updateList);
+    document.getElementById('projectDropdown').addEventListener('change', updateList);
+
+        // Uncomment below to fetch data from your API
+        async function getAccessRequestList() {
+            fetch(apiEndpoint)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network error');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    accessData = data
+                    populateProjectDropdown();
+                    renderRequestList(accessData);
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+
+
+
+        // For demonstration, use sampleData
+        getAccessRequestList()
+    </script>
+</body>
+
+</html>
